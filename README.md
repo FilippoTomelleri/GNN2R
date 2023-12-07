@@ -1,8 +1,6 @@
 # GNN2R: Weakly-Supervised Rationale-Providing Question Answering over Knowledge Graphs
 
-This repository includes the code for our paper **GNN2R: Weakly-Supervised Rationale-Providing Question Answering over Knowledge Graphs**.
-
-The link to the paper and citation information will be added soon. 
+This repository includes the code for our paper [**GNN2R: Weakly-Supervised Rationale-Providing Question Answering over Knowledge Graphs**](https://arxiv.org/abs/2312.02317).
 
 Feel free to contact [me](https://www.ifi.uzh.ch/en/ddis/people/ruijie.html) if there is any questions.
 
