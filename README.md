@@ -34,6 +34,7 @@ The structure of this folder:
             * `best.tar`- the pre-trained model (Step-II)
 
 * If you are interested in the original data, please refer to [NSM](https://github.com/RichardHGL/WSDM2021_NSM) (WebQuestionsSP and ComplexWebQuestions) and [IRN](https://github.com/zmtkeke/IRN) (PQ and PQL).
+* The used OpenNER-large model can be downloaded from [OpenNER](https://github.com/zmd971202/OpenNER).
 * We used `que_prep.py` to preprocess WebQuestionsSP and CWQ, and `que_prep_pq.py` to preprocess PQ and PQL.
 
 -----
