@@ -1,9 +1,5 @@
 # GNN2R: Weakly-Supervised Rationale-Providing Question Answering over Knowledge Graphs
 
-Ruijie Wang, Luca Rossetto, Michael Cochez, Abraham Bernstein
-
-This repository includes the code for our paper [**GNN2R: Weakly-Supervised Rationale-Providing Question Answering over Knowledge Graphs**](https://arxiv.org/abs/2312.02317).
-
 ## QA Performance of GNN2R
 
 ![overall results](https://github.com/ruijie-wang-uzh/GNN2R/blob/main/results.png?raw=true)
@@ -122,11 +118,11 @@ Please take a note of the timestamp of the Step-I model trained by `main.py` and
 
 ### ComplexWebQuestions (CWQ)
   ```shell
-  python -u main.py --dataset CWQ --num_epochs 50 --num_gcn_layers 3 --batch_size 24 --lr 0.0005 --weight_decay 1e-05 --dropout 0.0 --margin 0.5`
+  python -u main.py --dataset CWQ --num_epochs 50 --num_gcn_layers 3 --batch_size 24 --lr 0.0005 --weight_decay 1e-05 --dropout 0.0 --margin 0.5
   ```
   
   ```shell
-  python -u subgraph_reasoning.py --dataset CWQ --align_timestamp [timestamp] --train_top 25 --valid_test_top 25 --prep_subg --margin 0.1 --eval_enc_batch 512 --num_epochs 50 --batch_size 12 --neg_size 32 --lr 8e-06 --lr_decay 1.0 --weight_decay 0.001 --num_warmup_steps 500 --reinit_n 0 --valid_batch_freq 500`
+  python -u subgraph_reasoning.py --dataset CWQ --align_timestamp [timestamp] --train_top 25 --valid_test_top 25 --prep_subg --margin 0.1 --eval_enc_batch 512 --num_epochs 50 --batch_size 12 --neg_size 32 --lr 8e-06 --lr_decay 1.0 --weight_decay 0.001 --num_warmup_steps 500 --reinit_n 0 --valid_batch_freq 500
   ```
 
 ### PQ-2hop
