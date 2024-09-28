@@ -9,11 +9,12 @@ from collections import defaultdict
 from argparse import ArgumentParser
 from torch.utils.data import DataLoader
 from models import AttenModel, ExpMatchModel
+from models.generalSuperclass import GeneralSuperclass
 from utils import num_total_ques, read_obj, QAData, ExpData
 from utils import collate_fn, write_obj, get_time, extract_subg_pq, rewrite_subg, cal_eval_metric
 
 class SubgraphReasoning:
-    def __init__(self):
+    def __init__(self, model: GeneralSuperclass):
 
         self.train_qid2que, self.valid_qid2que, self.test_qid2que = [
             read_obj(file_path=os.path.join(args.in_path, '{}_qid2que.pickle'.format(_))) for _ in [
@@ -32,7 +33,7 @@ class SubgraphReasoning:
         self.dis_comp = nn.PairwiseDistance(p=args.norm)
         self.sigmoid = nn.Sigmoid()
 
-        self.train_qid2subgs, self.valid_qid2subgs, self.test_qid2subgs = self.subg_extract()
+        self.train_qid2subgs, self.valid_qid2subgs, self.test_qid2subgs = self.subg_extract(model)
 
         if args.dataset in ['pq-2hop', 'pq-3hop']:
             tmp_file = '{}H-kb.pickle'.format(args.dataset[-4])
@@ -40,17 +41,17 @@ class SubgraphReasoning:
             tmp_file = 'PQL{}-KB.pickle'.format(args.dataset[-4])
         _, _, self.trp2id = read_obj(file_path=os.path.join(args.in_path, tmp_file))
 
-    def subg_extract(self):
+    def subg_extract(self, model: GeneralSuperclass):
         if not os.path.exists(args.subgraph_data_path) or args.prep_subg:
             if not os.path.exists(args.subgraph_data_path):
                 os.makedirs(args.subgraph_data_path)
             print('### Extracting Subgraphs based on Candidate Answers')
-            atten_model = AttenModel(rel2embeds=self.rel2embeds, in_dim=args.in_dim,
-                                     hid_dim=args.align_hid_dim, num_layers=args.num_gcn_layers,
-                                     dropout=0.).cuda()
-            atten_model.load_state_dict(torch.load(os.path.join(args.align_model_path, 'best.tar'),
+ 
+            # load the specified model
+            model.load_state_dict(torch.load(os.path.join(args.align_model_path, 'best.tar'),
                                                    map_location=torch.device(torch.cuda.current_device()))['model_state'])
-            rel_embeds = atten_model.rel_enc()
+            
+            rel_embeds = model.rel_enc()
             for qid2que, qid2embeds, mode in zip(
                     [self.train_qid2que, self.valid_qid2que, self.test_qid2que],
                     [self.train_qid2embeds, self.valid_qid2embeds, self.test_qid2embeds],
@@ -63,7 +64,7 @@ class SubgraphReasoning:
                 for batch_id, batch_data in enumerate(tqdm(data_loader)):
                     # generate candidate answers
                     qid, num_subg_ents, edge_index, edge_attr, loc_tops, _, que_embeds, _, _ = batch_data[0]
-                    x, fin_que_embed = atten_model(que_embeds=que_embeds, r=rel_embeds, num_subg_ents=num_subg_ents,
+                    x, fin_que_embed = model(que_embeds=que_embeds, r=rel_embeds, num_subg_ents=num_subg_ents,
                                                    edge_index=edge_index, edge_attr=edge_attr, loc_tops=loc_tops)
                     all_dis = self.sigmoid(self.dis_comp(x, fin_que_embed))  # size: (num_subg_ents)
                     values, indices = torch.sort(all_dis)

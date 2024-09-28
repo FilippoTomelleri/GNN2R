@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from models import AttenModel
+from models.generalSuperclass import GeneralSuperclass
 from datetime import datetime
 from argparse import ArgumentParser
 from torch.utils.data import DataLoader
@@ -21,14 +22,10 @@ class AttenTrain:
 
         self.rel2embeds = read_obj(file_path=os.path.join(args.in_path, 'rel2embeds.pickle'))
 
-    def train(self):
+    def train(self, model: GeneralSuperclass):
         print('### Training')
-        atten_model = AttenModel(rel2embeds=self.rel2embeds, in_dim=args.in_dim,
-                                 hid_dim=args.hid_dim, num_layers=args.num_gcn_layers,
-                                 dropout=args.dropout)
-        atten_model.cuda()
-
-        optimizer = optim.RAdam(params=atten_model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        
+        optimizer = optim.RAdam(params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         criterion = nn.TripletMarginWithDistanceLoss(distance_function=nn.PairwiseDistance(p=args.norm),
                                                      margin=args.margin, reduction=args.loss_red)
 
@@ -39,24 +36,24 @@ class AttenTrain:
         if args.pre_timestamp:
             ckp_path = os.path.join(args.out_path.replace(args.timestamp, args.pre_timestamp), 'best.tar')
             ckp = torch.load(ckp_path, map_location=torch.device(torch.cuda.current_device()))
-            atten_model.load_state_dict(ckp['model_state'])
+            model.load_state_dict(ckp['model_state'])
             print('* loaded the pre-trained model from {} which was cached at {}'.format(ckp_path, ckp['timestamp']))
 
         print('* validation results before training')
-        highest_acc = self.eval(mode='valid', model=atten_model)['hits@1']
+        highest_acc = self.eval(mode='valid', model=model)['hits@1']
 
         for epoch in range(args.num_epochs):
             print('* epoch {} - {}'.format(epoch, get_time()))
             epoch_loss = 0.
-            atten_model.train()
+            model.train()
             for batch_id, batch_data in enumerate(train_loader):
-                atten_model.zero_grad()
-                r = atten_model.rel_enc()
+                model.zero_grad()
+                relations_encodings = model.rel_enc()
                 batch_loss = torch.tensor(0.).cuda()
                 for single_data in batch_data:
                     [_, num_subg_ents, edge_index, edge_attr, loc_tops,
                      _, que_embeds, pos_loc_ans, neg_loc_ans] = single_data
-                    x, fin_que_embed = atten_model(que_embeds=que_embeds, r=r, num_subg_ents=num_subg_ents,
+                    x, fin_que_embed = model(que_embeds=que_embeds, r=relations_encodings, num_subg_ents=num_subg_ents,
                                                    edge_index=edge_index, edge_attr=edge_attr, loc_tops=loc_tops)
                     anchor = fin_que_embed.expand(pos_loc_ans.size()[0], -1)
                     positive = x[pos_loc_ans]
@@ -71,14 +68,14 @@ class AttenTrain:
             ckp = {
                 'epoch': epoch,
                 'timestamp': get_time(),
-                'model_state': atten_model.state_dict(),
+                'model_state': model.state_dict(),
                 'optimizer_state': optimizer.state_dict(),
             }
             if not os.path.exists(args.out_path):
                 os.makedirs(args.out_path)
             torch.save(ckp, os.path.join(args.out_path, 'current.tar'))
 
-            acc = self.eval(mode='valid', model=atten_model)['hits@1']
+            acc = self.eval(mode='valid', model=model)['hits@1']
             if acc > highest_acc:
                 torch.save(ckp, os.path.join(args.out_path, 'best.tar'))
                 print('\t* accuracy improved: {} -> {} at {}'.format(highest_acc, acc, get_time()))
@@ -225,6 +222,12 @@ if __name__ == '__main__':
         print('* {}: {}'.format(k, v))
 
     atten_train = AttenTrain()
+
+    atten_model = AttenModel(rel2embeds=atten_train.rel2embeds, in_dim=args.in_dim,
+                                 hid_dim=args.hid_dim, num_layers=args.num_gcn_layers,
+                                 dropout=args.dropout)
+    atten_model.cuda()
+
     if args.num_epochs > 0:
-        atten_train.train()
+        atten_train.train(model=atten_model)
     atten_train.test()
