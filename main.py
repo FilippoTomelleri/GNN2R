@@ -50,16 +50,20 @@ class AttenTrain:
                 model.zero_grad()
                 relations_encodings = model.rel_enc()
                 batch_loss = torch.tensor(0.).cuda()
+                
                 for single_data in batch_data:
                     [_, num_subg_ents, edge_index, edge_attr, loc_tops,
                      _, que_embeds, pos_loc_ans, neg_loc_ans] = single_data
+                    
                     x, fin_que_embed = model(que_embeds=que_embeds, r=relations_encodings, num_subg_ents=num_subg_ents,
                                                    edge_index=edge_index, edge_attr=edge_attr, loc_tops=loc_tops)
+                    
                     anchor = fin_que_embed.expand(pos_loc_ans.size()[0], -1)
                     positive = x[pos_loc_ans]
                     negative = x[neg_loc_ans]
 
                     batch_loss += criterion(anchor, positive, negative)
+                    
                 batch_loss.backward()
                 optimizer.step()
                 epoch_loss += batch_loss.item()
