@@ -6,7 +6,7 @@ import torch
 
 class RGCNBaseline(GeneralSuperclass):
 
-    def __init__(self, rel2embeds: dict, in_channes, out_channels, num_relations, num_bases=None, num_layers=None, **kwargs):
+    def __init__(self, rel2embeds: dict, in_channes, out_channels, num_relations, **kwargs):
         super(RGCNBaseline, self).__init__()
         self.hid_dim = out_channels
 

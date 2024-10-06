@@ -2,8 +2,9 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from models import AttenModel
 from models.generalSuperclass import GeneralSuperclass
+from models.RGCNbaselineModel import RGCNBaseline
+from models.baseGNN2r import AttenModel
 from datetime import datetime
 from argparse import ArgumentParser
 from torch.utils.data import DataLoader
@@ -22,11 +23,15 @@ class AttenTrain:
 
         self.rel2embeds = read_obj(file_path=os.path.join(args.in_path, 'rel2embeds.pickle'))
 
-    def train(self, model: GeneralSuperclass):
+    def train(self, model: GeneralSuperclass,
+              criterion: nn.Module = None, optimizer: optim.Optimizer = None):
         print('### Training')
         
-        optimizer = optim.RAdam(params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-        criterion = nn.TripletMarginWithDistanceLoss(distance_function=nn.PairwiseDistance(p=args.norm),
+        if optimizer is None:
+            optimizer = optim.RAdam(params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        
+        if criterion is None:
+            criterion = nn.TripletMarginWithDistanceLoss(distance_function=nn.PairwiseDistance(p=args.norm),
                                                      margin=args.margin, reduction=args.loss_red)
 
         train_data = QAData(qid2que=self.train_qid2que, qid2embeds=self.train_qid2embeds,
@@ -230,7 +235,11 @@ if __name__ == '__main__':
     atten_model = AttenModel(rel2embeds=atten_train.rel2embeds, in_dim=args.in_dim,
                                  hid_dim=args.hid_dim, num_layers=args.num_gcn_layers,
                                  dropout=args.dropout)
-    atten_model.cuda()
+    
+    model = RGCNBaseline(rel2embeds=atten_train.rel2embeds, in_dim=args.in_dim,
+                                 out_dim=args.hid_dim)
+
+    model.cuda()
 
     if args.num_epochs > 0:
         atten_train.train(model=atten_model)
